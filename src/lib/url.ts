@@ -30,7 +30,12 @@ export function decodeAddress(sp: URLSearchParams): AddressUrlState | null {
 }
 
 export function compareSerialise(states: AddressUrlState[]): string {
-  return states.map((s) => `${s.lat.toFixed(5)},${s.lng.toFixed(5)},${s.horizon}`).join("|");
+  return states
+    .map((s) => {
+      const base = `${s.lat.toFixed(5)},${s.lng.toFixed(5)},${s.horizon}`;
+      return s.label ? `${base},${encodeURIComponent(s.label)}` : base;
+    })
+    .join("|");
 }
 
 export function compareParse(s: string): AddressUrlState[] {
@@ -43,7 +48,10 @@ export function compareParse(s: string): AddressUrlState[] {
       const h = Number.parseInt(parts[2] ?? "10", 10);
       if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
       const horizon: Horizon = h === 5 || h === 7 || h === 15 ? h : 10;
-      return { lat, lng, horizon };
+      const label = parts[3] ? decodeURIComponent(parts.slice(3).join(",")) : undefined;
+      const parsed: AddressUrlState = { lat, lng, horizon };
+      if (label) parsed.label = label;
+      return parsed;
     })
     .filter((s): s is AddressUrlState => s !== null);
 }

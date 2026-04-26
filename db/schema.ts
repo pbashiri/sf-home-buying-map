@@ -7,7 +7,9 @@
 import { sql } from "drizzle-orm";
 import {
   bigint,
+  boolean,
   customType,
+  doublePrecision,
   index,
   integer,
   jsonb,
@@ -15,6 +17,7 @@ import {
   serial,
   text,
   timestamp,
+  uniqueIndex,
   uuid,
 } from "drizzle-orm/pg-core";
 
@@ -194,3 +197,43 @@ export const ingestionRuns = pgTable("ingestion_runs", {
   status: text("status").notNull(),
   error: text("error"),
 });
+
+export const savedHomes = pgTable(
+  "saved_homes",
+  {
+    id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+    userId: uuid("user_id").notNull(),
+    label: text("label").notNull(),
+    lat: doublePrecision("lat").notNull(),
+    lng: doublePrecision("lng").notNull(),
+    horizon: integer("horizon").default(10).notNull(),
+    notes: text("notes"),
+    shareToken: text("share_token"),
+    shareEnabled: boolean("share_enabled").default(false).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => ({
+    ownerIdx: index("saved_homes_user_id_idx").on(t.userId),
+    shareTokenIdx: uniqueIndex("saved_homes_share_token_idx").on(t.shareToken),
+    perUserLocationIdx: uniqueIndex("saved_homes_user_lat_lng_idx").on(t.userId, t.lat, t.lng),
+  }),
+);
+
+export const savedHomeMessages = pgTable(
+  "saved_home_messages",
+  {
+    id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+    savedHomeId: uuid("saved_home_id")
+      .notNull()
+      .references(() => savedHomes.id, { onDelete: "cascade" }),
+    userId: uuid("user_id").notNull(),
+    role: text("role").notNull(),
+    content: text("content").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => ({
+    homeIdx: index("saved_home_messages_home_id_idx").on(t.savedHomeId),
+    ownerIdx: index("saved_home_messages_user_id_idx").on(t.userId),
+  }),
+);

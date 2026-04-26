@@ -146,6 +146,24 @@ Alternatives evaluated:
 
 ---
 
+## D12 — Liquefaction overlay sourced from DataSF, treated as combined seismic hazard zone
+
+**Status:** chosen.
+
+**Spec position:** SPEC §2.1 layer 1 cites the CGS regulatory shapefile and labels the layer "CGS Liquefaction & seismic hazard zones."
+
+**Decision:** The overlay polygons in `public/data/seismic_liquefaction.geojson` are now ingested live from DataSF dataset `re79-p8j5` (the underlying tabular asset of the public map at `https://data.sfgov.org/-/San-Francisco-Seismic-Hazard-Zones/7ahv-68ap`). DataSF mirrors the CGS regulatory map clipped to SF and is the authoritative source for the polygons most San Francisco buyers and inspectors actually see. The previous file was hand-encoded from the v0 prototype and visibly diverged from the regulatory map.
+
+The DataSF dataset combines all three CGS hazard categories (liquefaction, earthquake-induced landslide, overlap) into a single polygon set without a `zone_type` column. We surface this honestly in the UI:
+
+- Layer toggle label: "Seismic hazard zones (CGS)" (was "Liquefaction (CGS)").
+- Concern title (in-zone): "Inside CGS regulatory seismic hazard zone" with body explaining it's either liquefaction (bay fill / alluvium) or earthquake-induced landslide (steep slopes), depending on local geology. The disclosure trigger is identical in both cases.
+- Layer ID, severity key (`liquefaction.in_zone`), and concern `layer` discriminator are unchanged so the data pipeline and severity tables don't move.
+
+**Path forward:** if CGS publishes a typed feed (or we go direct to the CGS ArcGIS REST endpoint that does carry zone type), enrich each feature with `zone_type ∈ {liquefaction, landslide, overlap}` and split copy + severity per type.
+
+---
+
 ## D10 — Test coverage scope
 
 **Status:** chosen.
@@ -153,3 +171,17 @@ Alternatives evaluated:
 **Spec position:** SPEC §13 — "Playwright golden-path test green in CI."
 
 **Decision:** Vitest unit suite covers the concern engine, severity tables, geo helpers, deterministic LLM, and URL state. Playwright covers golden path + about + compare + out-of-SF API. CI integration is `npm run test && npm run test:e2e` — wire to Vercel previews when ready.
+
+---
+
+## D13 — Optional Supabase saved homes; ship without DB; dependency baseline
+
+**Status:** chosen.
+
+**Spec position:** D11 — core map + concerns work without a provisioned database. SPEC §1.2 lists "No user-generated content" as a v1 non-goal; saved homes are an intentional product extension layered on top of the same degradation story as D1.
+
+**Decision:**
+
+1. **Saved homes / auth UI** (`AuthButton`, `SavedHomesDock`) render only when `NEXT_PUBLIC_SUPABASE_URL` and a public client key (`NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` or legacy `NEXT_PUBLIC_SUPABASE_ANON_KEY`) are set. Deploys without those vars behave like the file-backed concern engine only; no broken sign-in chrome.
+2. **Tables and RLS** for saved homes live in `db/migrations/0001_saved_homes.sql`. Until that SQL is applied in Supabase, client calls fail gracefully at the network layer; finishing DB setup is operational, not a code deploy blocker.
+3. **`package.json` baseline** stays on **Next.js 15.5.x** with React 19, `@sentry/nextjs` 10.x, Drizzle 0.36.x, Vitest 2.x. A bad lockfile once resolved `next` to 9.x and broke `next build`; CI should treat `npm run build` as mandatory on PRs.

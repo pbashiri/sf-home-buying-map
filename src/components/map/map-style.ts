@@ -13,8 +13,8 @@ export function buildMapStyle(): string | StyleSpecification {
   return "https://tiles.openfreemap.org/styles/liberty";
 }
 
-export const SF_CENTER: [number, number] = [-122.4448, 37.7749];
+export const SF_CENTER: [number, number] = [-122.4425, 37.7755];
 export const SF_BOUNDS: [[number, number], [number, number]] = [
-  [-122.515, 37.7],
-  [-122.355, 37.835],
+  [-122.585, 37.665],
+  [-122.305, 37.86],
 ];

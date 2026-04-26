@@ -141,30 +141,36 @@ export async function concernsAt(
         pointInPolygon(lng, lat, f.geometry as Polygon | MultiPolygon),
     );
     const src = await sourceFromManifest("seismic_liquefaction", {
-      source_label: "California Geological Survey Seismic Hazard Zones",
-      source_url: "https://maps.conservation.ca.gov/cgs/informationwarehouse/eqzapp/",
+      source_label: "DataSF — San Francisco Seismic Hazard Zones (CGS regulatory map)",
+      source_url: "https://data.sfgov.org/-/San-Francisco-Seismic-Hazard-Zones/7ahv-68ap",
       ingested_at: new Date().toISOString(),
     });
+    // The CGS regulatory map covers two hazard types in one set of polygons:
+    // liquefaction (saturated bay fill / alluvium) and earthquake-induced
+    // landslides (steep slopes). The public DataSF mirror does not split them,
+    // so we phrase the concern around the union — it's still a hard
+    // disclosure trigger either way.
     concerns.push(
       inLiq
         ? mkConcern({
-            id: `liquefaction_in_${lat.toFixed(4)}_${lng.toFixed(4)}`,
+            id: `seismic_hazard_in_${lat.toFixed(4)}_${lng.toFixed(4)}`,
             layer: "seismic_liquefaction",
             key: "liquefaction.in_zone",
             horizon,
-            title: "Inside CGS regulatory liquefaction zone",
-            body: "This parcel is within the California Geological Survey's regulatory liquefaction hazard zone. In a major event the soil column can lose strength and amplify shaking on weak fill or saturated alluvium.",
-            action: "Require a parcel-specific geotechnical report from the seller; insurers will ask.",
+            title: "Inside CGS regulatory seismic hazard zone",
+            body: "This parcel is within California's regulatory seismic hazard zone — either a liquefaction zone (saturated fill or alluvium that can lose strength in a major event) or an earthquake-induced landslide zone (steep slopes), depending on the local geology.",
+            action:
+              "Require a parcel-specific geotechnical report from the seller; insurers and lenders will ask.",
             source: { label: src.source_label, url: src.source_url },
             ingested_at: src.ingested_at,
           })
         : mkConcern({
-            id: `liquefaction_out_${lat.toFixed(4)}_${lng.toFixed(4)}`,
+            id: `seismic_hazard_out_${lat.toFixed(4)}_${lng.toFixed(4)}`,
             layer: "seismic_liquefaction",
             key: "softstory.tract_density_high", // mapped to "watch" baseline; downgrade to context
             horizon,
-            title: "Outside CGS regulatory liquefaction zone",
-            body: "Outside the regulatory map. This is the better side of the seismic substrate question — but ask the seller for the geotechnical disclosure anyway.",
+            title: "Outside CGS regulatory seismic hazard zone",
+            body: "Outside the regulatory liquefaction and earthquake-induced landslide zones. This is the better side of the seismic substrate question — but ask the seller for the geotechnical disclosure anyway.",
             source: { label: src.source_label, url: src.source_url },
             ingested_at: src.ingested_at,
           }),

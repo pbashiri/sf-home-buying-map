@@ -1,7 +1,9 @@
 "use client";
 
+import SeverityBar from "@/components/panel/severity-bar";
 import { compareParse } from "@/lib/url";
-import type { Concern, ConcernsResponse, Horizon, Severity } from "@/types/concern";
+import type { Concern, ConcernsResponse, Severity } from "@/types/concern";
+import { motion } from "framer-motion";
 import { useSearchParams } from "next/navigation";
 import posthog from "posthog-js";
 import { useEffect, useMemo, useState } from "react";
@@ -13,6 +15,19 @@ type Cell = {
 };
 
 const SEVERITIES: Severity[] = ["alert", "watch", "favor", "context"];
+const SEVERITY_LABEL: Record<Severity, string> = {
+  alert: "Alert",
+  watch: "Watch",
+  favor: "Favor",
+  context: "Context",
+};
+
+function countsFor(cell: Cell): Record<Severity, number> {
+  const out: Record<Severity, number> = { alert: 0, watch: 0, favor: 0, context: 0 };
+  if (!cell.data) return out;
+  for (const c of cell.data.concerns) out[c.severity]++;
+  return out;
+}
 
 export default function CompareClient() {
   const sp = useSearchParams();
@@ -37,7 +52,9 @@ export default function CompareClient() {
         .then((data) => {
           setCells((prev) => {
             const next = [...prev];
-            next[i] = { ...next[i]!, data, loading: false };
+            const existing = next[i];
+            if (!existing) return prev;
+            next[i] = { ...existing, data, loading: false };
             return next;
           });
         })
@@ -45,7 +62,9 @@ export default function CompareClient() {
           console.error("[compare]", err);
           setCells((prev) => {
             const next = [...prev];
-            next[i] = { ...next[i]!, loading: false };
+            const existing = next[i];
+            if (!existing) return prev;
+            next[i] = { ...existing, loading: false };
             return next;
           });
         });
@@ -65,47 +84,68 @@ export default function CompareClient() {
       className="mt-6 grid gap-4"
       style={{ gridTemplateColumns: `repeat(${cells.length}, minmax(0, 1fr))` }}
     >
-      {cells.map((cell, i) => (
-        <article key={i} className="rounded-2xl border border-black/10 bg-white p-4 shadow-sm">
-          <header>
-            <p className="text-xs uppercase tracking-wider text-[color:var(--color-text-3)]">
-              {cell.data?.address.neighborhood ?? "SF"}
-            </p>
-            <h2 className="font-display mt-1 text-lg leading-tight">
-              {cell.address.label ?? `${cell.address.lat.toFixed(4)}, ${cell.address.lng.toFixed(4)}`}
-            </h2>
-          </header>
-          {cell.loading && (
-            <div className="mt-4 space-y-2">
-              <div className="h-3 w-3/4 animate-pulse rounded bg-black/5" />
-              <div className="h-3 w-2/3 animate-pulse rounded bg-black/5" />
-              <div className="h-3 w-1/2 animate-pulse rounded bg-black/5" />
-            </div>
-          )}
-          {cell.data && (
-            <div className="mt-3 space-y-3">
-              {SEVERITIES.map((sev) => {
-                const items = cell.data!.concerns.filter((c) => c.severity === sev);
-                if (items.length === 0) return null;
-                return (
-                  <div key={sev}>
-                    <p className="text-[11px] font-semibold uppercase tracking-wider text-[color:var(--color-text-3)]">
-                      <span className={`dot dot-${sev}`} aria-hidden /> {sev} ({items.length})
-                    </p>
-                    <ul className="mt-1 space-y-1">
-                      {items.slice(0, 4).map((c: Concern) => (
-                        <li key={c.id} className="text-xs leading-snug">
-                          {c.title}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </article>
-      ))}
+      {cells.map((cell, i) => {
+        const counts = countsFor(cell);
+        return (
+          <motion.article
+            key={`${cell.address.lat}-${cell.address.lng}`}
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.32, delay: i * 0.05, ease: [0.22, 1, 0.36, 1] }}
+            className="surface-elevated flex flex-col gap-4 rounded-2xl p-5"
+          >
+            <header>
+              <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-[color:var(--color-text-3)]">
+                {cell.data?.address.neighborhood ?? "San Francisco"}
+              </p>
+              <h2 className="font-display mt-1 text-lg leading-tight">
+                {cell.address.label ?? `${cell.address.lat.toFixed(4)}, ${cell.address.lng.toFixed(4)}`}
+              </h2>
+            </header>
+
+            {cell.loading && (
+              <div className="space-y-2">
+                <div className="h-3 w-3/4 animate-pulse rounded bg-black/[0.06]" />
+                <div className="h-3 w-2/3 animate-pulse rounded bg-black/[0.06]" />
+                <div className="h-3 w-1/2 animate-pulse rounded bg-black/[0.06]" />
+              </div>
+            )}
+
+            {cell.data && (
+              <>
+                <SeverityBar counts={counts} />
+
+                <div className="space-y-3">
+                  {SEVERITIES.map((sev) => {
+                    const items = cell.data!.concerns.filter((c) => c.severity === sev);
+                    if (items.length === 0) return null;
+                    return (
+                      <div key={sev}>
+                        <p className="font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-[color:var(--color-text-3)]">
+                          <span className={`dot dot-${sev}`} aria-hidden /> {SEVERITY_LABEL[sev]} (
+                          {items.length})
+                        </p>
+                        <ul className="mt-1 space-y-1">
+                          {items.slice(0, 4).map((c: Concern) => (
+                            <li key={c.id} className="text-xs leading-snug text-[color:var(--color-text-2)]">
+                              {c.title}
+                            </li>
+                          ))}
+                          {items.length > 4 && (
+                            <li className="text-[11px] text-[color:var(--color-text-3)]">
+                              +{items.length - 4} more
+                            </li>
+                          )}
+                        </ul>
+                      </div>
+                    );
+                  })}
+                </div>
+              </>
+            )}
+          </motion.article>
+        );
+      })}
     </div>
   );
 }
