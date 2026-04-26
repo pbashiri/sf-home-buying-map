@@ -3,15 +3,18 @@
 
 @theme {
   /* Surfaces */
-  --color-bg: #f3f1ec;
+  --color-bg: #f5f3ee;
+  --color-bg-2: #ebe7df;
   --color-surface: #ffffff;
-  --color-surface-glass: rgb(255 255 255 / 0.72);
+  --color-surface-glass: rgb(255 255 255 / 0.78);
+  --color-surface-deep: #0d0d0e;
 
   /* Ink */
   --color-ink: #0a0a0a;
   --color-text: #151515;
   --color-text-2: #525252;
   --color-text-3: #8a8a8a;
+  --color-text-inv: #fafaf7;
 
   /* Severity */
   --color-alert: #9b1c1c;
@@ -33,6 +36,10 @@
   --color-air: #0e7490;
   --color-noise: #7c2d12;
 
+  /* Brand accent (used sparingly) */
+  --color-accent: #b04425;
+  --color-accent-soft: #f5d6c6;
+
   /* Type */
   --font-sans: "Inter", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
   --font-serif: "Newsreader", Georgia, serif;
@@ -41,12 +48,14 @@
   /* Motion */
   --ease-entrance: cubic-bezier(0.22, 1, 0.36, 1);
   --ease-emphasis: cubic-bezier(0.65, 0, 0.35, 1);
+  --ease-exit: cubic-bezier(0.4, 0, 1, 1);
 
   /* Radii */
   --radius-sm: 6px;
   --radius-md: 10px;
   --radius-lg: 14px;
   --radius-xl: 20px;
+  --radius-2xl: 28px;
 }
 
 * {
@@ -64,6 +73,12 @@ body {
   font-family: var(--font-sans);
   font-feature-settings: "ss01", "ss02", "cv01", "cv11";
   -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+::selection {
+  background: var(--color-ink);
+  color: var(--color-text-inv);
 }
 
 /* Tabular numerals everywhere numbers appear */
@@ -73,20 +88,45 @@ body {
 
 .font-display {
   font-family: var(--font-serif);
-  letter-spacing: -0.02em;
+  letter-spacing: -0.025em;
   font-weight: 600;
 }
 
-/* Glass surface for floating cards */
-.surface-glass {
-  background: var(--color-surface-glass);
-  backdrop-filter: blur(24px) saturate(140%);
-  -webkit-backdrop-filter: blur(24px) saturate(140%);
-  border: 1px solid rgb(0 0 0 / 0.06);
-  box-shadow: 0 1px 2px rgb(0 0 0 / 0.06), 0 8px 30px rgb(0 0 0 / 0.08);
+.font-mono {
+  font-family: var(--font-mono);
 }
 
-/* Severity dot */
+/* ── Surfaces ─────────────────────────────────────────────────────── */
+
+.surface-glass {
+  background: var(--color-surface-glass);
+  backdrop-filter: blur(28px) saturate(150%);
+  -webkit-backdrop-filter: blur(28px) saturate(150%);
+  border: 1px solid rgb(255 255 255 / 0.6);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.5), 0 1px 2px rgb(0 0 0 / 0.04), 0 8px 28px rgb(0 0 0 / 0.08),
+    0 24px 60px -20px rgb(0 0 0 / 0.12);
+}
+
+.surface-elevated {
+  background: var(--color-surface);
+  border: 1px solid rgb(0 0 0 / 0.06);
+  box-shadow: 0 1px 0 rgb(255 255 255 / 0.8) inset, 0 1px 2px rgb(0 0 0 / 0.04), 0 12px 32px -8px
+    rgb(0 0 0 / 0.12);
+}
+
+.surface-dark {
+  background: var(--color-surface-deep);
+  color: var(--color-text-inv);
+  border: 1px solid rgb(255 255 255 / 0.08);
+}
+
+/* Hairline divider */
+.hairline {
+  border-color: rgb(0 0 0 / 0.07);
+}
+
+/* ── Severity dots & borders ───────────────────────────────────────── */
+
 .dot {
   display: inline-block;
   width: 8px;
@@ -97,18 +137,21 @@ body {
 }
 .dot-alert {
   background: var(--color-alert);
+  box-shadow: 0 0 0 3px rgb(155 28 28 / 0.12);
 }
 .dot-watch {
   background: var(--color-watch);
+  box-shadow: 0 0 0 3px rgb(163 83 27 / 0.12);
 }
 .dot-favor {
   background: var(--color-favor);
+  box-shadow: 0 0 0 3px rgb(15 95 51 / 0.12);
 }
 .dot-context {
   background: var(--color-text-3);
+  box-shadow: 0 0 0 3px rgb(138 138 138 / 0.12);
 }
 
-/* Severity card border */
 .bd-alert {
   border-left-color: var(--color-alert);
 }
@@ -122,19 +165,118 @@ body {
   border-left-color: var(--color-text-3);
 }
 
-/* Focus ring */
+/* ── Focus ring (rounded, premium) ─────────────────────────────────── */
+
 :focus-visible {
   outline: 2px solid var(--color-ink);
-  outline-offset: 4px;
+  outline-offset: 3px;
+  border-radius: 6px;
 }
 
-/* MapLibre tweaks */
+/* ── Map tweaks ────────────────────────────────────────────────────── */
+
 .maplibregl-ctrl-attrib-inner {
   font-family: var(--font-sans);
   font-size: 10px;
 }
+.maplibregl-ctrl-bottom-right .maplibregl-ctrl {
+  margin-right: 12px;
+  margin-bottom: 12px;
+}
+.maplibregl-ctrl-group {
+  border-radius: 999px !important;
+  overflow: hidden;
+  border: 1px solid rgb(0 0 0 / 0.08) !important;
+  box-shadow: 0 6px 20px -8px rgb(0 0 0 / 0.2) !important;
+  backdrop-filter: blur(20px) saturate(140%);
+  background: rgb(255 255 255 / 0.78) !important;
+}
+.maplibregl-ctrl-group button {
+  width: 36px !important;
+  height: 36px !important;
+}
 
-/* Reduced motion */
+/* Hide attribution control link icon clutter on hero */
+.maplibregl-ctrl-attrib {
+  background: rgb(255 255 255 / 0.65) !important;
+  border-radius: 999px !important;
+  padding: 2px 8px !important;
+  margin: 0 12px 12px 0 !important;
+}
+
+/* ── Custom marker ─────────────────────────────────────────────────── */
+
+@keyframes marker-pulse {
+  0% {
+    transform: scale(0.6);
+    opacity: 0.7;
+  }
+  70% {
+    transform: scale(2.4);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(2.4);
+    opacity: 0;
+  }
+}
+@keyframes marker-drop {
+  0% {
+    transform: translateY(-12px) scale(0.8);
+    opacity: 0;
+  }
+  60% {
+    transform: translateY(2px) scale(1.05);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+}
+
+/* ── Streaming text shimmer (for in-progress LLM stream) ───────────── */
+
+@keyframes streaming-cursor {
+  0%,
+  50% {
+    opacity: 1;
+  }
+  51%,
+  100% {
+    opacity: 0;
+  }
+}
+.streaming-cursor::after {
+  content: "";
+  display: inline-block;
+  width: 0.5ch;
+  height: 1em;
+  margin-left: 2px;
+  background: currentColor;
+  vertical-align: -0.15em;
+  animation: streaming-cursor 900ms infinite step-end;
+  border-radius: 1px;
+}
+
+/* ── Subtle grain texture for hero (uses SVG noise, ~3KB inline) ──── */
+
+/* `.grain` adds a noise overlay via ::after. It deliberately does not set
+ * position itself — apply it to an element that's already positioned
+ * (typically `absolute inset-0` for an overlay layer) and the pseudo-element
+ * will fill it. */
+.grain::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.035;
+  mix-blend-mode: multiply;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160' viewBox='0 0 160 160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%25' height='100%25' filter='url(%23n)' opacity='0.55'/></svg>");
+}
+
+/* ── Reduced motion ────────────────────────────────────────────────── */
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -145,7 +287,8 @@ body {
   }
 }
 
-/* Print */
+/* ── Print ─────────────────────────────────────────────────────────── */
+
 @media print {
   .no-print {
     display: none !important;
@@ -153,10 +296,59 @@ body {
   body {
     background: white;
   }
-  .surface-glass {
+  .surface-glass,
+  .surface-elevated {
     background: white !important;
     backdrop-filter: none !important;
     border: 1px solid #e5e5e5 !important;
     box-shadow: none !important;
   }
+}
+
+/* ── Custom scrollbar (subtle, premium) ────────────────────────────── */
+
+.scroll-fancy {
+  scrollbar-width: thin;
+  scrollbar-color: rgb(0 0 0 / 0.18) transparent;
+}
+.scroll-fancy::-webkit-scrollbar {
+  width: 6px;
+}
+.scroll-fancy::-webkit-scrollbar-track {
+  background: transparent;
+}
+.scroll-fancy::-webkit-scrollbar-thumb {
+  background: rgb(0 0 0 / 0.14);
+  border-radius: 999px;
+}
+.scroll-fancy::-webkit-scrollbar-thumb:hover {
+  background: rgb(0 0 0 / 0.28);
+}
+
+/* ── Hero reveal animation ─────────────────────────────────────────── */
+
+@keyframes hero-rise {
+  from {
+    transform: translateY(8px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+.hero-rise {
+  animation: hero-rise 600ms var(--ease-entrance) both;
+}
+.hero-rise-2 {
+  animation-delay: 80ms;
+}
+.hero-rise-3 {
+  animation-delay: 160ms;
+}
+.hero-rise-4 {
+  animation-delay: 240ms;
+}
+.hero-rise-5 {
+  animation-delay: 320ms;
 }

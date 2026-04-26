@@ -343,6 +343,43 @@ async function ingestHIN(m: ManifestEntry[]): Promise<void> {
 }
 
 // --------------------------------------------------------------------------
+// Seismic Hazard Zones (DataSF re79-p8j5)
+//
+// DataSF mirrors the California Geological Survey regulatory map clipped to
+// SF, so this is the authoritative source for the liquefaction overlay. The
+// dataset is a single tabular view of MultiPolygon rows (id + the_geom);
+// the three zone types (liquefaction, earthquake-induced landslide, both)
+// are not tagged in the public columns, which matches CGS's regulatory map
+// where the "Seismic Hazard Zone" boundary is the actionable polygon.
+//
+// We tag every feature with `layer_id: "seismic_liquefaction"` so the
+// existing point-in-polygon concern logic and map fill paint keep working.
+// --------------------------------------------------------------------------
+async function ingestSeismicLiquefaction(m: ManifestEntry[]): Promise<void> {
+  console.log("[ingest] seismic hazard zones (DataSF re79-p8j5)");
+  const url = new URL("https://data.sfgov.org/resource/re79-p8j5.geojson");
+  url.searchParams.set("$limit", "5000");
+  if (process.env.DATASF_APP_TOKEN) url.searchParams.set("$$app_token", process.env.DATASF_APP_TOKEN);
+  const fc = await fetchJson<GeoJSON.FeatureCollection>(url.toString());
+  fc.features = fc.features.map((f) => ({
+    ...f,
+    properties: {
+      ...(f.properties ?? {}),
+      layer_id: "seismic_liquefaction",
+      label: "CGS Seismic Hazard Zone",
+    },
+  }));
+  await writeGeoJson("seismic_liquefaction.geojson", fc);
+  upsertManifest(m, {
+    layerId: "seismic_liquefaction",
+    file: "seismic_liquefaction.geojson",
+    source_url: "https://data.sfgov.org/-/San-Francisco-Seismic-Hazard-Zones/7ahv-68ap",
+    source_label: "DataSF — San Francisco Seismic Hazard Zones (CGS regulatory map)",
+    ingested_at: NOW,
+  });
+}
+
+// --------------------------------------------------------------------------
 // Article 10 / 11 historic districts (SF Planning) — try DataSF mirror first
 // --------------------------------------------------------------------------
 async function ingestHistoric(m: ManifestEntry[]): Promise<void> {
@@ -365,6 +402,7 @@ async function main(): Promise<void> {
     ["trees", ingestStreetTrees],
     ["bart", ingestBart],
     ["hin", ingestHIN],
+    ["seismic-liquefaction", ingestSeismicLiquefaction],
     ["historic", ingestHistoric],
   ];
   for (const [name, fn] of tasks) {

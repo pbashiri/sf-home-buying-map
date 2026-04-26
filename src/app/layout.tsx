@@ -22,12 +22,15 @@ const jetbrains = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Theami — what to look out for in this SF block",
+  title: "Theami — read the block.",
   description:
-    "Theami answers one question for any San Francisco address: what should I look out for here, and on what time horizon? Authoritative city/state/federal data, no scoring, every claim sourced.",
+    "What to look out for at any San Francisco address. Authoritative city/state/federal data, every claim sourced, weighted by your time horizon.",
   metadataBase: new URL("https://theami.ai"),
+  icons: {
+    icon: [{ url: "/favicon.svg", type: "image/svg+xml" }],
+  },
   openGraph: {
-    title: "Theami — SF real estate guide",
+    title: "Theami — read the block.",
     description:
       "What to look out for at any San Francisco address. Real data, plain English, every claim sourced.",
     type: "website",

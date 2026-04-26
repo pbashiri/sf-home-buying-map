@@ -9,9 +9,9 @@
   {
     "layerId": "seismic_liquefaction",
     "file": "seismic_liquefaction.geojson",
-    "source_url": "https://maps.conservation.ca.gov/cgs/informationwarehouse/eqzapp/",
-    "source_label": "California Geological Survey Seismic Hazard Zones",
-    "ingested_at": "2026-04-26T07:04:08.263Z"
+    "source_url": "https://data.sfgov.org/-/San-Francisco-Seismic-Hazard-Zones/7ahv-68ap",
+    "source_label": "DataSF — San Francisco Seismic Hazard Zones (CGS regulatory map)",
+    "ingested_at": "2026-04-26T07:24:00.246Z"
   },
   {
     "layerId": "flood_fema",

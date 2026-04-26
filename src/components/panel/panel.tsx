@@ -10,10 +10,14 @@ import type {
   Summary,
   SummaryBullet,
 } from "@/types/concern";
-import { ExternalLink, Loader2, Printer, Share2, X } from "lucide-react";
+import * as Tabs from "@radix-ui/react-tabs";
+import { AnimatePresence, motion } from "framer-motion";
+import { BookmarkCheck, BookmarkPlus, ExternalLink, Loader2, Printer, Share2, X } from "lucide-react";
 import posthog from "posthog-js";
 import { useEffect, useMemo, useState } from "react";
 import HorizonSelector from "./horizon-selector";
+import SeverityBar from "./severity-bar";
+import VerdictGauge from "./verdict-gauge";
 
 type Props = {
   address: Address | null;
@@ -50,6 +54,7 @@ export default function Panel({
   });
   const [loadingSummary, setLoadingSummary] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [tab, setTab] = useState<"brief" | "concerns" | "sources">("brief");
 
   // Fetch concerns on (address, horizon) change
   useEffect(() => {
@@ -133,11 +138,17 @@ export default function Panel({
     return () => ctl.abort();
   }, [concernsResp, address, horizon]);
 
-  // Map of concern id → concern for bullet lookup
   const concernsById = useMemo(() => {
     const m = new Map<string, Concern>();
     if (concernsResp) for (const c of concernsResp.concerns) m.set(c.id, c);
     return m;
+  }, [concernsResp]);
+
+  const counts = useMemo<Record<Severity, number>>(() => {
+    const init: Record<Severity, number> = { alert: 0, watch: 0, favor: 0, context: 0 };
+    if (!concernsResp) return init;
+    for (const c of concernsResp.concerns) init[c.severity]++;
+    return init;
   }, [concernsResp]);
 
   if (!address) return null;
@@ -149,21 +160,38 @@ export default function Panel({
       }))
     : [];
 
+  const totalConcerns = concernsResp?.concerns.length ?? 0;
+  const sources = concernsResp
+    ? Array.from(
+        new Map(
+          concernsResp.concerns.map((c) => [
+            c.source.url,
+            { ...c.source, ingested_at: c.ingested_at, count: 0 },
+          ]),
+        ).values(),
+      ).map((s) => ({
+        ...s,
+        count: concernsResp.concerns.filter((c) => c.source.url === s.url).length,
+      }))
+    : [];
+
   return (
-    <aside
-      className="no-print fixed top-0 right-0 bottom-0 z-30 flex w-full max-w-[440px] flex-col overflow-hidden border-l border-black/10 bg-[color:var(--color-bg)] shadow-2xl print:relative print:w-full print:max-w-none print:border-0 print:shadow-none"
-      style={{
-        animation: "slide-in 320ms var(--ease-entrance)",
-      }}
+    <motion.aside
+      initial={{ x: 32, opacity: 0 }}
+      animate={{ x: 0, opacity: 1 }}
+      exit={{ x: 32, opacity: 0 }}
+      transition={{ duration: 0.34, ease: [0.22, 1, 0.36, 1] }}
+      className="no-print fixed top-0 right-0 bottom-0 z-30 flex w-full max-w-[460px] flex-col overflow-hidden border-l border-black/10 bg-[color:var(--color-bg)] shadow-[-8px_0_40px_-12px_rgba(0,0,0,0.18)] print:relative print:w-full print:max-w-none print:border-0 print:shadow-none"
       aria-label="Concerns panel"
     >
+      {/* ── Editorial header ─────────────────────────────────────── */}
       <header className="surface-glass relative flex flex-col gap-3 px-5 pt-5 pb-4">
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0 flex-1">
-            <p className="text-xs uppercase tracking-wider text-[color:var(--color-text-3)]">
-              {address.neighborhood ?? "San Francisco"}
+            <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-[color:var(--color-text-3)]">
+              {address.neighborhood ?? "San Francisco"} · {totalConcerns} concerns
             </p>
-            <h2 className="font-display mt-0.5 truncate text-2xl leading-tight">
+            <h2 className="font-display mt-1 truncate text-[26px] leading-[1.1]">
               {description ?? `${address.lat.toFixed(4)}, ${address.lng.toFixed(4)}`}
             </h2>
           </div>
@@ -171,20 +199,37 @@ export default function Panel({
             type="button"
             aria-label="Close panel"
             onClick={onClose}
-            className="rounded-full p-1.5 hover:bg-black/5"
+            className="rounded-full p-1.5 text-[color:var(--color-text-3)] transition-colors hover:bg-black/5 hover:text-[color:var(--color-ink)]"
           >
             <X className="h-4 w-4" />
           </button>
         </div>
+
         <div className="flex items-center gap-2">
           <HorizonSelector value={horizon} onChange={onHorizonChange} />
           <div className="ml-auto flex items-center gap-1">
+            {onSaveCompare && (
+              <button
+                type="button"
+                onClick={onSaveCompare}
+                aria-label={saved ? "Saved to compare" : "Save to compare"}
+                title={saved ? "Saved to compare" : "Save to compare"}
+                className={cn(
+                  "rounded-full p-2 transition-colors",
+                  saved
+                    ? "bg-[color:var(--color-ink)] text-white"
+                    : "text-[color:var(--color-text-3)] hover:bg-black/5 hover:text-[color:var(--color-ink)]",
+                )}
+              >
+                {saved ? <BookmarkCheck className="h-4 w-4" /> : <BookmarkPlus className="h-4 w-4" />}
+              </button>
+            )}
             <button
               type="button"
               onClick={onShare}
               aria-label="Share permalink"
               title="Share permalink"
-              className="rounded-full p-2 hover:bg-black/5"
+              className="rounded-full p-2 text-[color:var(--color-text-3)] transition-colors hover:bg-black/5 hover:text-[color:var(--color-ink)]"
             >
               <Share2 className="h-4 w-4" />
             </button>
@@ -193,139 +238,242 @@ export default function Panel({
               onClick={() => window.print()}
               aria-label="Print"
               title="Print"
-              className="rounded-full p-2 hover:bg-black/5"
+              className="rounded-full p-2 text-[color:var(--color-text-3)] transition-colors hover:bg-black/5 hover:text-[color:var(--color-ink)]"
             >
               <Printer className="h-4 w-4" />
             </button>
-            {onSaveCompare && (
-              <button
-                type="button"
-                onClick={onSaveCompare}
-                className={cn(
-                  "rounded-full px-3 py-1 text-xs font-medium",
-                  saved ? "bg-[color:var(--color-ink)] text-white" : "bg-black/5 hover:bg-black/10",
-                )}
-              >
-                {saved ? "Saved" : "Save to compare"}
-              </button>
-            )}
           </div>
         </div>
+
+        {/* ── Tabs ─────────────────────────────────────────── */}
+        <Tabs.Root value={tab} onValueChange={(v) => setTab(v as typeof tab)}>
+          <Tabs.List className="relative -mx-1 flex items-center gap-1 px-1">
+            {(["brief", "concerns", "sources"] as const).map((id) => (
+              <Tabs.Trigger
+                key={id}
+                value={id}
+                className="relative rounded-full px-3 py-1.5 text-xs font-semibold uppercase tracking-wider text-[color:var(--color-text-3)] transition-colors data-[state=active]:text-[color:var(--color-ink)]"
+              >
+                {tab === id && (
+                  <motion.span
+                    layoutId="panel-tab-bg"
+                    className="absolute inset-0 -z-10 rounded-full bg-black/[0.06]"
+                    transition={{ type: "spring", duration: 0.32, bounce: 0.18 }}
+                  />
+                )}
+                {id}
+                {id === "concerns" && totalConcerns > 0 && (
+                  <span className="font-mono tabular ml-1 text-[10px] text-[color:var(--color-text-3)]">
+                    {totalConcerns}
+                  </span>
+                )}
+              </Tabs.Trigger>
+            ))}
+          </Tabs.List>
+        </Tabs.Root>
       </header>
 
-      <div className="flex-1 overflow-y-auto px-5 py-4 space-y-6">
-        {/* Summary */}
-        <section aria-label="Summary">
-          {loadingSummary && !summary.headline ? (
-            <SummarySkeleton />
-          ) : (
-            <>
-              {summary.headline && (
-                <h3 className="font-display mb-3 text-xl leading-snug">{summary.headline}</h3>
-              )}
-              {summary.bullets.length > 0 && (
-                <ul className="space-y-2">
-                  {summary.bullets.map((b, i) => {
-                    if (!concernsById.has(b.concern_id)) return null; // drop hallucinations
-                    return (
-                      <li
-                        key={`${b.concern_id}-${i}`}
-                        className="flex items-start gap-2 text-sm leading-relaxed"
-                      >
-                        <span className={`dot dot-${b.severity} mt-1.5`} aria-hidden />
-                        <span>{b.text}</span>
-                      </li>
-                    );
-                  })}
-                </ul>
-              )}
-              {summary.outlook && (
-                <p className="mt-4 text-sm leading-relaxed text-[color:var(--color-text-2)]">
-                  {summary.outlook}
-                </p>
-              )}
-              {summary.verdict && (
-                <p className="mt-3">
-                  <span
-                    className={cn(
-                      "tabular inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium",
-                      summary.verdict === "alert" &&
-                        "bg-[color:var(--color-alert)]/10 text-[color:var(--color-alert)]",
-                      summary.verdict === "watch" &&
-                        "bg-[color:var(--color-watch)]/10 text-[color:var(--color-watch)]",
-                      summary.verdict === "favor" &&
-                        "bg-[color:var(--color-favor)]/10 text-[color:var(--color-favor)]",
-                      summary.verdict === "neutral" && "bg-black/5 text-[color:var(--color-text-2)]",
-                    )}
-                  >
-                    Verdict: {summary.verdict}
-                  </span>
-                </p>
-              )}
-            </>
-          )}
-        </section>
+      {/* ── Content ──────────────────────────────────────────────── */}
+      <div className="scroll-fancy flex-1 overflow-y-auto">
+        {/* Brief */}
+        {tab === "brief" && (
+          <div className="space-y-5 px-5 py-5">
+            <VerdictGauge verdict={summary.verdict} loading={loadingSummary && !summary.verdict} />
 
-        {/* Concerns */}
-        {loadingConcerns && (
-          <div className="flex items-center gap-2 text-sm text-[color:var(--color-text-3)]">
-            <Loader2 className="h-3.5 w-3.5 animate-spin" /> Reading authoritative datasets…
+            <SummarySection summary={summary} loading={loadingSummary} concernsById={concernsById} />
+
+            {error && (
+              <p className="rounded-lg border border-[color:var(--color-alert)]/20 bg-[color:var(--color-alert)]/[0.06] px-3 py-2 text-sm text-[color:var(--color-alert)]">
+                {error}
+              </p>
+            )}
+
+            {!loadingConcerns && concernsResp && totalConcerns > 0 && (
+              <section aria-labelledby="distribution">
+                <h3
+                  id="distribution"
+                  className="font-mono mb-2 text-[10px] uppercase tracking-[0.18em] text-[color:var(--color-text-3)]"
+                >
+                  Distribution
+                </h3>
+                <SeverityBar counts={counts} />
+              </section>
+            )}
           </div>
         )}
-        {error && <p className="text-sm text-[color:var(--color-alert)]">{error}</p>}
-        {grouped.map(({ sev, items }) =>
-          items.length === 0 ? null : (
-            <section key={sev} aria-labelledby={`group-${sev}`}>
-              <h4
-                id={`group-${sev}`}
-                className="mb-2 text-xs font-semibold uppercase tracking-wider text-[color:var(--color-text-3)]"
-              >
-                <span className={`dot dot-${sev}`} aria-hidden />
-                {SEVERITY_LABEL[sev]} <span className="tabular ml-1 font-normal">({items.length})</span>
-              </h4>
-              <ol className="space-y-2">
-                {items.map((c) => (
-                  <ConcernCard key={c.id} concern={c} />
-                ))}
-              </ol>
-            </section>
-          ),
+
+        {/* Concerns */}
+        {tab === "concerns" && (
+          <div className="space-y-5 px-5 py-5">
+            {loadingConcerns && (
+              <div className="flex items-center gap-2 text-sm text-[color:var(--color-text-3)]">
+                <Loader2 className="h-3.5 w-3.5 animate-spin" /> Reading authoritative datasets…
+              </div>
+            )}
+            {grouped.map(({ sev, items }) =>
+              items.length === 0 ? null : (
+                <section key={sev} aria-labelledby={`group-${sev}`}>
+                  <h4
+                    id={`group-${sev}`}
+                    className="font-mono mb-2 flex items-center text-[10px] uppercase tracking-[0.18em] text-[color:var(--color-text-3)]"
+                  >
+                    <span className={`dot dot-${sev}`} aria-hidden />
+                    <span className="text-[color:var(--color-text-2)]">{SEVERITY_LABEL[sev]}</span>
+                    <span className="tabular ml-1">({items.length})</span>
+                  </h4>
+                  <ol className="space-y-2">
+                    {items.map((c, idx) => (
+                      <ConcernCard key={c.id} concern={c} index={idx} />
+                    ))}
+                  </ol>
+                </section>
+              ),
+            )}
+            {!loadingConcerns && totalConcerns === 0 && (
+              <p className="text-sm text-[color:var(--color-text-3)]">
+                No concerns surfaced at this address. That's not nothing — it usually means the authoritative
+                datasets we pull don't flag this block.
+              </p>
+            )}
+          </div>
         )}
-        <p className="pt-4 text-[11px] leading-relaxed text-[color:var(--color-text-3)]">
+
+        {/* Sources */}
+        {tab === "sources" && (
+          <div className="space-y-3 px-5 py-5">
+            <p className="text-sm leading-relaxed text-[color:var(--color-text-2)]">
+              Every claim above resolves back to a primary dataset. Hover or click to inspect.
+            </p>
+            <ul className="space-y-2">
+              {sources.map((s) => (
+                <li key={s.url} className="surface-elevated flex items-start gap-3 rounded-xl p-3">
+                  <div className="font-mono mt-0.5 flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-md bg-black/[0.04] text-[10px] tabular text-[color:var(--color-text-2)]">
+                    {s.count}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <a
+                      href={s.url}
+                      target="_blank"
+                      rel="noreferrer noopener"
+                      className="inline-flex items-center gap-1 text-sm font-medium text-[color:var(--color-ink)] underline-offset-2 hover:underline"
+                    >
+                      {s.label}
+                      <ExternalLink className="h-3 w-3" aria-hidden />
+                    </a>
+                    <p className="font-mono tabular mt-0.5 text-[11px] text-[color:var(--color-text-3)]">
+                      updated{" "}
+                      {new Date(s.ingested_at).toLocaleDateString("en-US", {
+                        month: "short",
+                        day: "numeric",
+                        year: "numeric",
+                      })}
+                    </p>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        <p className="px-5 pt-2 pb-5 text-[11px] leading-relaxed text-[color:var(--color-text-3)]">
           For informational purposes only. Verify with licensed professionals before any purchase decision.
-          Source dates show how fresh each layer is.
         </p>
       </div>
-
-      <style>
-        {"@keyframes slide-in { from { transform: translateX(100%); } to { transform: translateX(0); } }"}
-      </style>
-    </aside>
+    </motion.aside>
   );
 }
 
-function ConcernCard({ concern }: { concern: Concern }) {
+function SummarySection({
+  summary,
+  loading,
+  concernsById,
+}: {
+  summary: Partial<Summary> & { bullets: SummaryBullet[] };
+  loading: boolean;
+  concernsById: Map<string, Concern>;
+}) {
+  const isStreaming = loading;
+
+  if (loading && !summary.headline) {
+    return <SummarySkeleton />;
+  }
+
   return (
-    <li
+    <section aria-label="Summary">
+      {summary.headline && (
+        <h3
+          className={cn(
+            "font-display text-[22px] leading-snug",
+            isStreaming && !summary.outlook && "streaming-cursor",
+          )}
+        >
+          {summary.headline}
+        </h3>
+      )}
+
+      {summary.bullets.length > 0 && (
+        <ul className="mt-4 space-y-2.5">
+          <AnimatePresence initial={false}>
+            {summary.bullets.map((b, i) => {
+              if (!concernsById.has(b.concern_id)) return null;
+              return (
+                <motion.li
+                  key={`${b.concern_id}-${i}`}
+                  initial={{ opacity: 0, y: 4 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
+                  className="flex items-start gap-2.5 text-sm leading-relaxed"
+                >
+                  <span className={`dot dot-${b.severity} mt-1.5`} aria-hidden />
+                  <span>{b.text}</span>
+                </motion.li>
+              );
+            })}
+          </AnimatePresence>
+        </ul>
+      )}
+
+      {summary.outlook && (
+        <motion.p
+          initial={{ opacity: 0, y: 4 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.32, delay: 0.06 }}
+          className="font-display mt-5 border-t border-black/[0.07] pt-4 text-[15px] italic leading-relaxed text-[color:var(--color-text-2)]"
+        >
+          {summary.outlook}
+        </motion.p>
+      )}
+    </section>
+  );
+}
+
+function ConcernCard({ concern, index }: { concern: Concern; index: number }) {
+  return (
+    <motion.li
+      initial={{ opacity: 0, y: 4 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.22, delay: Math.min(index * 0.03, 0.18) }}
       className={cn(
-        "rounded-xl border-l-4 border-y border-r border-black/5 bg-white/60 p-3 print:bg-white",
+        "rounded-xl border-l-[3px] border-y border-r border-black/[0.06] bg-white/70 p-3.5 transition-colors hover:bg-white print:bg-white",
         `bd-${concern.severity}`,
       )}
     >
       <div className="flex items-baseline gap-2">
         <span className={`dot dot-${concern.severity}`} aria-hidden />
-        <h5 className="text-sm font-semibold leading-snug">{concern.title}</h5>
+        <h5 className="text-sm font-semibold leading-snug text-[color:var(--color-ink)]">{concern.title}</h5>
       </div>
-      <p className="mt-1 text-sm leading-relaxed text-[color:var(--color-text-2)]">{concern.body}</p>
+      <p className="mt-1.5 text-sm leading-relaxed text-[color:var(--color-text-2)]">{concern.body}</p>
       {concern.action && (
-        <p className="mt-1.5 text-xs italic text-[color:var(--color-text-2)]">→ {concern.action}</p>
+        <p className="mt-2 border-t border-black/[0.05] pt-2 text-xs italic text-[color:var(--color-text-2)]">
+          → {concern.action}
+        </p>
       )}
-      <div className="mt-2 flex items-center gap-2 text-[11px] text-[color:var(--color-text-3)]">
+      <div className="font-mono mt-2.5 flex items-center gap-2 text-[10px] uppercase tracking-wider text-[color:var(--color-text-3)]">
         <a
           href={concern.source.url}
           target="_blank"
           rel="noreferrer noopener"
-          className="inline-flex items-center gap-1 underline-offset-2 hover:underline"
+          className="inline-flex items-center gap-1 text-[color:var(--color-text-2)] underline-offset-2 hover:underline"
           onClick={() =>
             posthog.capture("concern_source_clicked", {
               concern_id: concern.id,
@@ -340,7 +488,6 @@ function ConcernCard({ concern }: { concern: Concern }) {
         </a>
         <span aria-hidden>·</span>
         <time className="tabular" dateTime={concern.ingested_at} title={concern.ingested_at}>
-          updated{" "}
           {new Date(concern.ingested_at).toLocaleDateString("en-US", {
             month: "short",
             day: "numeric",
@@ -348,17 +495,17 @@ function ConcernCard({ concern }: { concern: Concern }) {
           })}
         </time>
       </div>
-    </li>
+    </motion.li>
   );
 }
 
 function SummarySkeleton() {
   return (
     <div aria-busy className="space-y-3">
-      <div className="h-6 w-3/4 animate-pulse rounded bg-black/5" />
-      <div className="h-3 w-full animate-pulse rounded bg-black/5" />
-      <div className="h-3 w-11/12 animate-pulse rounded bg-black/5" />
-      <div className="h-3 w-9/12 animate-pulse rounded bg-black/5" />
+      <div className="h-6 w-3/4 animate-pulse rounded bg-black/[0.06]" />
+      <div className="h-3 w-full animate-pulse rounded bg-black/[0.05]" />
+      <div className="h-3 w-11/12 animate-pulse rounded bg-black/[0.05]" />
+      <div className="h-3 w-9/12 animate-pulse rounded bg-black/[0.05]" />
     </div>
   );
 }
