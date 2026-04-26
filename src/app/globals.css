@@ -1,0 +1,162 @@
+@import "tailwindcss";
+@import "maplibre-gl/dist/maplibre-gl.css";
+
+@theme {
+  /* Surfaces */
+  --color-bg: #f3f1ec;
+  --color-surface: #ffffff;
+  --color-surface-glass: rgb(255 255 255 / 0.72);
+
+  /* Ink */
+  --color-ink: #0a0a0a;
+  --color-text: #151515;
+  --color-text-2: #525252;
+  --color-text-3: #8a8a8a;
+
+  /* Severity */
+  --color-alert: #9b1c1c;
+  --color-watch: #a3531b;
+  --color-favor: #0f5f33;
+  --color-neutral: #525252;
+
+  /* Layer hues */
+  --color-seismic: #a3531b;
+  --color-flood: #125a8a;
+  --color-upzone: #1f2937;
+  --color-softstory: #854d0e;
+  --color-safety: #9b1c1c;
+  --color-schools: #0f5f33;
+  --color-transit: #0a5e5e;
+  --color-fog: #475569;
+  --color-construction: #5b21b6;
+  --color-legal: #374151;
+  --color-air: #0e7490;
+  --color-noise: #7c2d12;
+
+  /* Type */
+  --font-sans: "Inter", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-serif: "Newsreader", Georgia, serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+
+  /* Motion */
+  --ease-entrance: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-emphasis: cubic-bezier(0.65, 0, 0.35, 1);
+
+  /* Radii */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 20px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-sans);
+  font-feature-settings: "ss01", "ss02", "cv01", "cv11";
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Tabular numerals everywhere numbers appear */
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+.font-display {
+  font-family: var(--font-serif);
+  letter-spacing: -0.02em;
+  font-weight: 600;
+}
+
+/* Glass surface for floating cards */
+.surface-glass {
+  background: var(--color-surface-glass);
+  backdrop-filter: blur(24px) saturate(140%);
+  -webkit-backdrop-filter: blur(24px) saturate(140%);
+  border: 1px solid rgb(0 0 0 / 0.06);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.06), 0 8px 30px rgb(0 0 0 / 0.08);
+}
+
+/* Severity dot */
+.dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  margin-right: 8px;
+  flex-shrink: 0;
+}
+.dot-alert {
+  background: var(--color-alert);
+}
+.dot-watch {
+  background: var(--color-watch);
+}
+.dot-favor {
+  background: var(--color-favor);
+}
+.dot-context {
+  background: var(--color-text-3);
+}
+
+/* Severity card border */
+.bd-alert {
+  border-left-color: var(--color-alert);
+}
+.bd-watch {
+  border-left-color: var(--color-watch);
+}
+.bd-favor {
+  border-left-color: var(--color-favor);
+}
+.bd-context {
+  border-left-color: var(--color-text-3);
+}
+
+/* Focus ring */
+:focus-visible {
+  outline: 2px solid var(--color-ink);
+  outline-offset: 4px;
+}
+
+/* MapLibre tweaks */
+.maplibregl-ctrl-attrib-inner {
+  font-family: var(--font-sans);
+  font-size: 10px;
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Print */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  body {
+    background: white;
+  }
+  .surface-glass {
+    background: white !important;
+    backdrop-filter: none !important;
+    border: 1px solid #e5e5e5 !important;
+    box-shadow: none !important;
+  }
+}

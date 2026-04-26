@@ -1,0 +1,51 @@
+[
+  {
+    "layerId": "neighborhoods",
+    "file": "neighborhoods.geojson",
+    "source_url": "https://data.sfgov.org/Geographic-Locations-and-Boundaries/SF-Find-Neighborhoods/pty2-tcw4",
+    "source_label": "DataSF SF Find Neighborhoods",
+    "ingested_at": "2026-04-26T07:04:08.263Z"
+  },
+  {
+    "layerId": "seismic_liquefaction",
+    "file": "seismic_liquefaction.geojson",
+    "source_url": "https://maps.conservation.ca.gov/cgs/informationwarehouse/eqzapp/",
+    "source_label": "California Geological Survey Seismic Hazard Zones",
+    "ingested_at": "2026-04-26T07:04:08.263Z"
+  },
+  {
+    "layerId": "flood_fema",
+    "file": "flood_fema.geojson",
+    "source_url": "https://msc.fema.gov/portal/search",
+    "source_label": "FEMA NFHL + SF Planning Combined Flood Map (hand-encoded approximation)",
+    "ingested_at": "2026-04-26T07:04:08.263Z"
+  },
+  {
+    "layerId": "zoning_upzone",
+    "file": "zoning_upzone.geojson",
+    "source_url": "https://sfplanning.org/sf-family-zoning-plan",
+    "source_label": "SF Planning — SF Family Zoning Plan (effective 2026-01-12)",
+    "ingested_at": "2026-04-26T07:04:08.263Z"
+  },
+  {
+    "layerId": "schools",
+    "file": "schools.geojson",
+    "source_url": "https://www.sfusd.edu/schools",
+    "source_label": "SFUSD school directory + GreatSchools ratings (manual sync 2026-04)",
+    "ingested_at": "2026-04-26T07:04:08.263Z"
+  },
+  {
+    "layerId": "transit_muni_metro",
+    "file": "transit_muni_metro.geojson",
+    "source_url": "https://www.sfmta.com/maps/muni-metro-map",
+    "source_label": "SFMTA Muni Metro stops",
+    "ingested_at": "2026-04-26T07:04:08.263Z"
+  },
+  {
+    "layerId": "climate_fog",
+    "file": "climate_fog.geojson",
+    "source_url": "https://nature.berkeley.edu/dawsonlab/Welcome.html",
+    "source_label": "UC Berkeley microclimate (Dawson Lab) — west-to-east fog gradient",
+    "ingested_at": "2026-04-26T07:04:08.263Z"
+  }
+]

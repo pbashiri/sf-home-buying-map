@@ -1,0 +1,17 @@
+node_modules
+.next
+out
+dist
+*.tsbuildinfo
+.DS_Store
+.env
+.env.local
+.env.*.local
+coverage
+.vercel
+test-results
+playwright-report
+playwright/.cache
+
+# Sentry Config File
+.env.sentry-build-plugin
